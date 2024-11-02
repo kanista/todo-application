@@ -12,7 +12,6 @@ import com.example.todo_project.dto.UserDTO;
 import com.example.todo_project.entity.Role;
 import com.example.todo_project.exception.ApplicationException;
 import com.example.todo_project.service.AuthService;
-import com.example.todo_project.utils.JwtUtil;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -21,7 +20,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
-import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
@@ -31,12 +29,6 @@ public class AuthControllerTest {
 
     @Mock
     private AuthService authService;
-
-//    @Mock
-//    private AuthenticationManager authenticationManager;
-//
-//    @Mock
-//    private JwtUtil jwtUtil;
 
     @InjectMocks
     private AuthController authController;

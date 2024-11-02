@@ -9,6 +9,7 @@ import com.example.todo_project.exception.ApplicationException;
 import com.example.todo_project.repository.TodoRepository;
 import com.example.todo_project.repository.UserRepository;
 import com.example.todo_project.service.TodoService;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
@@ -35,14 +36,27 @@ public class TodoServiceTest {
     @Mock
     private UserRepository userRepository;
 
+    private AutoCloseable closeable;  // To manage Mockito's openMocks resource
+
     private User user;
     private Todo todo;
 
     @BeforeEach
     void setUp() {
-        MockitoAnnotations.openMocks(this);
+        // Initialize mocks and capture AutoCloseable for proper resource management
+        closeable = MockitoAnnotations.openMocks(this);
+
+        // Set up test data
         user = new User(1L, "test@example.com", "password", "Test User", Role.USER);
         todo = new Todo(1L, "Test 1", "java", null, Priority.LOW, false, user);
+    }
+
+    @AfterEach
+    void tearDown() throws Exception {
+        // Close AutoCloseable to release resources after each test
+        if (closeable != null) {
+            closeable.close();
+        }
     }
 
     @Test
