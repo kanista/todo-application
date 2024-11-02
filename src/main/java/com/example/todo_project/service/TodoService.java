@@ -2,6 +2,7 @@ package com.example.todo_project.service;
 
 import com.example.todo_project.dto.TodoResponseDTO;
 import com.example.todo_project.dto.UserDTO;
+import com.example.todo_project.entity.Priority;
 import com.example.todo_project.entity.Todo;
 import com.example.todo_project.entity.User;
 import com.example.todo_project.exception.ApplicationException;
@@ -103,6 +104,14 @@ public class TodoService {
         List<Todo> todos = todoRepository.findByUserAndCompleted(user, completed);
         return todos.stream().map(this::convertToDTO).collect(Collectors.toList());
     }
+
+    public Page<TodoResponseDTO> getTasksByPriority(String email, Priority priority, Pageable pageable) {
+        User user = getUser(email);
+        Page<Todo> todos = todoRepository.findByUserAndPriority(user, priority, pageable);
+        return todos.map(this::convertToDTO);
+    }
+
+
 
     private User getUser(String email) {
         return userRepository.findByEmail(email)

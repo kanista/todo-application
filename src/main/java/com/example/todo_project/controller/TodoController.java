@@ -2,6 +2,7 @@ package com.example.todo_project.controller;
 
 import com.example.todo_project.dto.CommonApiResponse;
 import com.example.todo_project.dto.TodoResponseDTO;
+import com.example.todo_project.entity.Priority;
 import com.example.todo_project.entity.Todo;
 import com.example.todo_project.exception.ApplicationException;
 import com.example.todo_project.service.TodoService;
@@ -200,5 +201,42 @@ public class TodoController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(commonApiResponse);
         }
     }
+
+    @GetMapping("/by-priority")
+    public ResponseEntity<CommonApiResponse<List<TodoResponseDTO>>> getTasksByPriority(
+            @RequestParam Priority priority,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "3") int size,
+            HttpServletRequest request) {
+
+        try {
+            String email = validateTokenAndGetEmail(request);
+            Pageable pageable = PageRequest.of(page, size);
+            Page<TodoResponseDTO> taskResponseDtos = todoService.getTasksByPriority(email, priority, pageable);
+
+            // Extract the content (list of tasks) from the Page object
+            List<TodoResponseDTO> taskContent = taskResponseDtos.getContent();
+
+            CommonApiResponse<List<TodoResponseDTO>> commonApiResponse = new CommonApiResponse<>(
+                    HttpStatus.OK.value(),
+                    "Todos retrieved successfully.",
+                    taskContent
+            );
+
+            return ResponseEntity.ok(commonApiResponse);
+        } catch (JwtException e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(new CommonApiResponse<>(HttpStatus.UNAUTHORIZED.value(), "Invalid token.", null));
+        } catch (Exception e) {
+            CommonApiResponse<List<TodoResponseDTO>> commonApiResponse = new CommonApiResponse<>(
+                    HttpStatus.INTERNAL_SERVER_ERROR.value(),
+                    "Failed to retrieve Todos.",
+                    null
+            );
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(commonApiResponse);
+        }
+    }
+
+
 
 }
