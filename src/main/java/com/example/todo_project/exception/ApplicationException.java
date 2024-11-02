@@ -1,8 +1,10 @@
 package com.example.todo_project.exception;
 
+import lombok.Getter;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
+@Getter
 public abstract class ApplicationException extends RuntimeException {
     private final HttpStatus status;
     private final String errorCode;
@@ -11,14 +13,6 @@ public abstract class ApplicationException extends RuntimeException {
         super(message);
         this.status = status;
         this.errorCode = errorCode;
-    }
-
-    public HttpStatus getStatus() {
-        return status;
-    }
-
-    public String getErrorCode() {
-        return errorCode;
     }
 
     // Custom exceptions extending ApplicationException

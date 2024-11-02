@@ -45,11 +45,15 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
     }
 
+    // Handle RuntimeException
     @ExceptionHandler(RuntimeException.class)
-    public ResponseEntity<CommonApiResponse> handleRuntimeException(RuntimeException ex) {
-        CommonApiResponse response = new CommonApiResponse();
-        response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
-        response.setMessage("Internal Server Error");
+    public ResponseEntity<CommonApiResponse<String>> handleRuntimeException(RuntimeException ex) {
+        logger.error("Runtime exception: {}", ex.getMessage());
+        CommonApiResponse<String> response = new CommonApiResponse<>(
+                HttpStatus.INTERNAL_SERVER_ERROR.value(),
+                "Internal Server Error",
+                null
+        );
         return new ResponseEntity<>(response, HttpStatus.INTERNAL_SERVER_ERROR);
     }
 

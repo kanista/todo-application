@@ -6,6 +6,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 
 import com.example.todo_project.controller.AuthController;
 import com.example.todo_project.dto.LoginRequestDTO;
+import com.example.todo_project.dto.LoginResponseDTO;
 import com.example.todo_project.dto.RegisterRequestDTO;
 import com.example.todo_project.dto.UserDTO;
 import com.example.todo_project.entity.Role;
@@ -31,11 +32,11 @@ public class AuthControllerTest {
     @Mock
     private AuthService authService;
 
-    @Mock
-    private AuthenticationManager authenticationManager;
-
-    @Mock
-    private JwtUtil jwtUtil;
+//    @Mock
+//    private AuthenticationManager authenticationManager;
+//
+//    @Mock
+//    private JwtUtil jwtUtil;
 
     @InjectMocks
     private AuthController authController;
@@ -97,19 +98,24 @@ public class AuthControllerTest {
 
     @Test
     public void testLoginUser_Success() throws Exception {
+        // Given
         LoginRequestDTO loginRequest = new LoginRequestDTO("test@example.com", "password123");
         String token = "mocked-jwt-token";
+        LoginResponseDTO loginResponse = new LoginResponseDTO(token, "Test User", "test@example.com");
 
-        when(authService.loginUser(loginRequest.getEmail(), loginRequest.getPassword())).thenReturn(token);
+        // Mocking the authService to return the LoginResponseDTO
+        when(authService.loginUser(loginRequest.getEmail(), loginRequest.getPassword())).thenReturn(loginResponse);
 
+        // When & Then
         mockMvc.perform(post("/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"email\": \"test@example.com\", \"password\": \"password123\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value(HttpStatus.OK.value()))
                 .andExpect(jsonPath("$.message").value("Login successful"))
-                .andExpect(jsonPath("$.data.token").value("mocked-jwt-token"));
+                .andExpect(jsonPath("$.data.token").value(token));
     }
+
 
     @Test
     public void testLoginUser_InvalidCredentials() throws Exception {

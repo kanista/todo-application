@@ -5,6 +5,8 @@ import com.example.todo_project.dto.UserDTO;
 import com.example.todo_project.entity.Priority;
 import com.example.todo_project.entity.Todo;
 import com.example.todo_project.entity.User;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import com.example.todo_project.exception.ApplicationException;
 import com.example.todo_project.repository.TodoRepository;
 import com.example.todo_project.repository.UserRepository;
@@ -21,6 +23,7 @@ public class TodoService {
 
     private final TodoRepository todoRepository;
     private final UserRepository userRepository;
+    private static final Logger logger = LoggerFactory.getLogger(TodoService.class);
 
     @Autowired
     public TodoService(TodoRepository todoRepository, UserRepository userRepository) {
@@ -29,17 +32,20 @@ public class TodoService {
     }
 
     public TodoResponseDTO createTask(Todo task, String email) {
+        logger.debug("Creating task: {}", task);
         User user = getUser(email);
+
         if (taskExists(task, user)) {
+            logger.warn("Task already exists for user: {}", email);
             throw new ApplicationException.TaskAlreadyExistsException("Task already exists for this user. Please modify the task details or check your tasks list");
         }
 
         task.setUser(user);
         Todo createdTask = todoRepository.save(task);
+        logger.info("Task created successfully: {}", createdTask);
 
-        UserDTO userDTO = new UserDTO(user.getId(), user.getEmail(), user.getName(),user.getRole());
+        UserDTO userDTO = new UserDTO(user.getId(), user.getEmail(), user.getName(), user.getRole());
 
-        // Return TaskResponseDto
         return new TodoResponseDTO(
                 createdTask.getId(),
                 createdTask.getTitle(),
@@ -53,7 +59,7 @@ public class TodoService {
 
     // Get all tasks for the authenticated user
     public Page<TodoResponseDTO> getAllTasks(String email, Pageable pageable) {
-        // Fetch paginated tasks and convert to DTO
+        logger.debug("Fetching all tasks for user: {}", email);
         return todoRepository.findAllByUserEmail(email, pageable)
                 .map(this::convertToDTO);
     }
@@ -61,6 +67,7 @@ public class TodoService {
 
     // Get a task by ID
     public TodoResponseDTO getTaskById(Long id, String email) {
+        logger.debug("Fetching task with id: {} for user: {}", id, email);
         User user = getUser(email);
         Todo todo = findTaskByIdAndUser(id, user);
         return convertToDTO(todo);
@@ -68,13 +75,17 @@ public class TodoService {
 
     // Update a task
     public Todo updateTask(Long id, Todo updatedTodo, String email) {
+        logger.debug("Updating task with id: {} for user: {}", id, email);
         User user = getUser(email);
-
         Todo existingTodo = todoRepository.findById(id)
-                .orElseThrow(() -> new ApplicationException.TodoNotFoundException("Todo not found"));
+                .orElseThrow(() -> {
+                    logger.error("Todo not found with id: {}", id);
+                    return new ApplicationException.TodoNotFoundException("Todo not found");
+                });
 
-        // Ensure the post belongs to the user
+        // Ensure the task belongs to the user
         if (!existingTodo.getUser().getId().equals(user.getId())) {
+            logger.error("Unauthorized access attempt for task id: {} by user: {}", id, email);
             throw new ApplicationException.UnauthorizedAccessException("You are not allowed to update this todo.");
         }
 
@@ -84,63 +95,82 @@ public class TodoService {
         existingTodo.setDueDate(updatedTodo.getDueDate());
         existingTodo.setCompleted(updatedTodo.isCompleted());
 
-        return todoRepository.save(existingTodo);
+        Todo updatedTask = todoRepository.save(existingTodo);
+        logger.info("Task updated successfully: {}", updatedTask);
+        return updatedTask;
     }
 
     // Delete a task
     public void deleteTask(Long id, String email) {
+        logger.debug("Deleting task with id: {} for user: {}", id, email);
         User user = getUser(email);
         Todo task = findTaskByIdAndUser(id, user);
-        // Ensure the post belongs to the user
+
+        // Ensure the task belongs to the user
         if (!task.getUser().getId().equals(user.getId())) {
+            logger.error("Unauthorized access attempt for task id: {} by user: {}", id, email);
             throw new ApplicationException.UnauthorizedAccessException("You are not allowed to delete this todo.");
         }
         todoRepository.delete(task);
+        logger.info("Task deleted successfully with id: {}", id);
     }
 
-
+    // Get tasks by completed status
     public List<TodoResponseDTO> getTasksByCompletion(String email, boolean completed) {
+        logger.debug("Fetching tasks for user: {} with completion status: {}", email, completed);
         User user = getUser(email);
         List<Todo> todos = todoRepository.findByUserAndCompleted(user, completed);
         return todos.stream().map(this::convertToDTO).collect(Collectors.toList());
     }
 
+    // Get tasks by priority
     public Page<TodoResponseDTO> getTasksByPriority(String email, Priority priority, Pageable pageable) {
+        logger.debug("Fetching tasks for user: {} with priority: {}", email, priority);
         User user = getUser(email);
         Page<Todo> todos = todoRepository.findByUserAndPriority(user, priority, pageable);
         return todos.map(this::convertToDTO);
     }
 
+    // Get tasks by task title
     public Page<TodoResponseDTO> searchTasksByTitle(String email, String title, Pageable pageable) {
+        logger.debug("Searching tasks for user: {} with title containing: {}", email, title);
         Page<Todo> todos = todoRepository.findByUserEmailAndTitleContainingIgnoreCase(email, title, pageable);
 
         if (todos.isEmpty()) {
+            logger.info("No tasks found for user: {} with title: {}", email, title);
             return Page.empty();
         }
 
         return todos.map(this::convertToDTO);
     }
 
-
-
+    // Get user details
     private User getUser(String email) {
         return userRepository.findByEmail(email)
-                .orElseThrow(() -> new ApplicationException.UserNotFoundException("User not found"));
+                .orElseThrow(() -> {
+                    logger.error("User not found for email: {}", email);
+                    return new ApplicationException.UserNotFoundException("User not found");
+                });
     }
 
+    // Check task exit or not
     private boolean taskExists(Todo task, User user) {
-        // Check for tasks with the same title or other identifying attributes
+        logger.debug("Checking if task exists: {} for user: {}", task.getTitle(), user.getEmail());
         return todoRepository.existsByTitleAndUser(task.getTitle(), user);
     }
 
+    // Find task by userId
     private Todo findTaskByIdAndUser(Long id, User user) {
         return todoRepository.findByIdAndUser(id, user)
-                .orElseThrow(() -> new ApplicationException.TodoNotFoundException("Todo not found"));
+                .orElseThrow(() -> {
+                    logger.error("Todo not found with id: {} for user: {}", id, user.getEmail());
+                    return new ApplicationException.TodoNotFoundException("Todo not found");
+                });
     }
 
-    // Helper method to convert Task to TaskDTO
+    //  Method to convert Task to TaskDTO
     private TodoResponseDTO convertToDTO(Todo task) {
-        User user = task.getUser(); // Get the User object
+        User user = task.getUser();
         UserDTO userDTO = new UserDTO(
                 user.getId(),
                 user.getEmail(),
@@ -151,6 +181,7 @@ public class TodoService {
         return new TodoResponseDTO(task.getId(), task.getTitle(), task.getDescription(),
                 task.getPriority(), task.getDueDate(), task.isCompleted(), userDTO);
     }
+
 }
 
 

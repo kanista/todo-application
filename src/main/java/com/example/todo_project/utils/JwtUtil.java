@@ -23,8 +23,9 @@ public class JwtUtil {
     private final long JWT_EXPIRATION = 86400000;
 
     public String extractUsername(String token) {
-        logger.info("Extracted Username: {}", extractClaim(token, Claims::getSubject)); // Should print the email
-        return extractClaim(token, Claims::getSubject);
+        String username = extractClaim(token, Claims::getSubject);
+        logger.debug("Extracted Username from token: {}", username);
+        return username;
     }
 
     public <T> T extractClaim(String token, Function<Claims, T> claimsResolver) {
@@ -34,8 +35,9 @@ public class JwtUtil {
 
     private Claims extractAllClaims(String token) {
         try {
-            return Jwts.parser()
-                    .setSigningKey(SECRET_KEY.getBytes()) // Convert the key to bytes
+            return Jwts.parserBuilder()
+                    .setSigningKey(SECRET_KEY.getBytes())
+                    .build()
                     .parseClaimsJws(token)
                     .getBody();
         } catch (Exception e) {
@@ -49,36 +51,39 @@ public class JwtUtil {
         try {
             Map<String, Object> claims = new HashMap<>();
             claims.put("name", name);
-            claims.put("role", role); // Ensure role is a string
+            claims.put("role", role.toString());
+            logger.debug("Generating JWT token for user: {}, role: {}", email, role);
             return createToken(claims, email);
         } catch (Exception e) {
-            e.printStackTrace(); // Log the error for debugging
             logger.error("Error generating JWT token: {}", e.getMessage());
-            throw new RuntimeException("Token generation failed: " + e.getMessage());
+            throw new RuntimeException("Token generation failed", e);
         }
     }
 
 
     private String createToken(Map<String, Object> claims, String subject) {
-        return Jwts.builder()
+        String token = Jwts.builder()
                 .setClaims(claims)
                 .setSubject(subject)
                 .setIssuedAt(new Date(System.currentTimeMillis()))
-                .setExpiration(new Date(new Date().getTime() + JWT_EXPIRATION))
+                .setExpiration(new Date(System.currentTimeMillis() + JWT_EXPIRATION))
                 .signWith(SignatureAlgorithm.HS256, SECRET_KEY.getBytes())
                 .compact();
+        logger.debug("JWT token created successfully for subject: {}", subject);
+        return token;
     }
 
     public Boolean validateToken(String token, String username) {
-        final String extractedUsername = extractUsername(token);
-        Boolean tokenValid = extractedUsername.equals(username) && !isTokenExpired(token);
-        logger.info("Token Validation - Extracted Username: {}", extractedUsername);
-        logger.info("Token Validity: {}", tokenValid);
-        return tokenValid;
+        String extractedUsername = extractUsername(token);
+        boolean isValid = extractedUsername.equals(username) && !isTokenExpired(token);
+        logger.info("Token validation result - Username: {}, Valid: {}", extractedUsername, isValid);
+        return isValid;
     }
 
     private Boolean isTokenExpired(String token) {
-        return extractExpiration(token).before(new Date());
+        boolean expired = extractExpiration(token).before(new Date());
+        logger.debug("Token expiration status: {}", expired ? "Expired" : "Not expired");
+        return expired;
     }
 
     private Date extractExpiration(String token) {

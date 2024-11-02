@@ -22,22 +22,21 @@ public class SecurityConfig {
 
     private final JwtRequestFilter jwtRequestFilter;
     private final UserDetailsService userDetailsService;
-    private final PasswordEncoder passwordEncoder;  // This should reference Spring's PasswordEncoder
+    private final PasswordEncoder passwordEncoder;
 
     public SecurityConfig(JwtRequestFilter jwtRequestFilter, UserDetailsService userDetailsService, PasswordEncoder passwordEncoder) {
         this.jwtRequestFilter = jwtRequestFilter;
         this.userDetailsService = userDetailsService;
-        this.passwordEncoder = passwordEncoder; // This should now work without issues
+        this.passwordEncoder = passwordEncoder;
     }
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         return http
-                .cors(withDefaults())  // Enable CORS configuration (applies the CORS settings from WebConfig)
-                .csrf(csrf -> csrf.disable())  // Disable CSRF protection since JWT tokens handle it
+                .cors(withDefaults())  // Enable CORS configuration
+                .csrf(csrf -> csrf.disable())  // Disable CSRF protection
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/auth/register","/auth/login","/admin/register","/uploads/**").permitAll()
-                        .requestMatchers("/admin/**").hasRole("ADMIN")
+                        .requestMatchers("/auth/register","/auth/login").permitAll()
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
@@ -51,7 +50,7 @@ public class SecurityConfig {
                 http.getSharedObject(AuthenticationManagerBuilder.class);
         authenticationManagerBuilder
                 .userDetailsService(userDetailsService)
-                .passwordEncoder(passwordEncoder); // Ensure this references the Spring PasswordEncoder
+                .passwordEncoder(passwordEncoder);
 
         return authenticationManagerBuilder.build();
     }
