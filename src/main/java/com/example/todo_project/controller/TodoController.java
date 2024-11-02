@@ -17,6 +17,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Collections;
 import java.util.List;
 
 @RestController
@@ -236,6 +237,52 @@ public class TodoController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(commonApiResponse);
         }
     }
+
+    @GetMapping("/search-by-title")
+    public ResponseEntity<CommonApiResponse<List<TodoResponseDTO>>> searchTasksByTitle(
+            @RequestParam String title,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "3") int size,
+            HttpServletRequest request) {
+
+        try {
+            String email = validateTokenAndGetEmail(request);
+            Pageable pageable = PageRequest.of(page, size);
+            Page<TodoResponseDTO> taskResponseDtos = todoService.searchTasksByTitle(email, title, pageable);
+
+            if (taskResponseDtos.isEmpty()) {
+                // Provide a suitable message when no tasks are found
+                CommonApiResponse<List<TodoResponseDTO>> commonApiResponse = new CommonApiResponse<>(
+                        HttpStatus.OK.value(),
+                        "No tasks found matching the title.",
+                        Collections.emptyList() // Return an empty list
+                );
+                return ResponseEntity.ok(commonApiResponse);
+            }
+
+            // Extract the content (list of tasks) from the Page object
+            List<TodoResponseDTO> taskContent = taskResponseDtos.getContent();
+
+            CommonApiResponse<List<TodoResponseDTO>> commonApiResponse = new CommonApiResponse<>(
+                    HttpStatus.OK.value(),
+                    "Todos retrieved successfully.",
+                    taskContent
+            );
+
+            return ResponseEntity.ok(commonApiResponse);
+        } catch (JwtException e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(new CommonApiResponse<>(HttpStatus.UNAUTHORIZED.value(), "Invalid token.", null));
+        } catch (Exception e) {
+            CommonApiResponse<List<TodoResponseDTO>> commonApiResponse = new CommonApiResponse<>(
+                    HttpStatus.INTERNAL_SERVER_ERROR.value(),
+                    "Failed to retrieve Todos.",
+                    null
+            );
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(commonApiResponse);
+        }
+    }
+
 
 
 

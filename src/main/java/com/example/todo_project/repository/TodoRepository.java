@@ -18,5 +18,6 @@ public interface TodoRepository extends JpaRepository<Todo,Long> {
     Optional<Todo> findByIdAndUser(Long id, User user);
     List<Todo> findByUserAndCompleted(User user, boolean completed);
     Page<Todo> findByUserAndPriority(User user, Priority priority, Pageable pageable);
+    Page<Todo> findByUserEmailAndTitleContainingIgnoreCase(String email, String title, Pageable pageable);
 
 }

@@ -111,6 +111,16 @@ public class TodoService {
         return todos.map(this::convertToDTO);
     }
 
+    public Page<TodoResponseDTO> searchTasksByTitle(String email, String title, Pageable pageable) {
+        Page<Todo> todos = todoRepository.findByUserEmailAndTitleContainingIgnoreCase(email, title, pageable);
+
+        if (todos.isEmpty()) {
+            return Page.empty();
+        }
+
+        return todos.map(this::convertToDTO);
+    }
+
 
 
     private User getUser(String email) {
