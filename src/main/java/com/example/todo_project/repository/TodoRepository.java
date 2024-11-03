@@ -8,6 +8,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -19,5 +20,7 @@ public interface TodoRepository extends JpaRepository<Todo,Long> {
     List<Todo> findByUserAndCompleted(User user, boolean completed);
     Page<Todo> findByUserAndPriority(User user, Priority priority, Pageable pageable);
     Page<Todo> findByUserEmailAndTitleContainingIgnoreCase(String email, String title, Pageable pageable);
+    Page<Todo> findByUserEmailAndDueDate(String email, LocalDate dueDate, Pageable pageable);
+
 
 }

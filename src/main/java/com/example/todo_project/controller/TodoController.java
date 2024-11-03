@@ -289,4 +289,45 @@ public class TodoController {
         }
     }
 
+    // Get tasks due today
+    @GetMapping("/due-today")
+    public ResponseEntity<CommonApiResponse<List<TodoResponseDTO>>> getTasksDueToday(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "3") int size,
+            HttpServletRequest request) {
+
+        logger.debug("Received request to fetch tasks due today, page: {}, size: {}", page, size);
+
+        try {
+            String email = validateTokenAndGetEmail(request);
+            Pageable pageable = PageRequest.of(page, size);
+            Page<TodoResponseDTO> taskResponseDtos = todoService.getTasksDueToday(email, pageable);
+
+            List<TodoResponseDTO> taskContent = taskResponseDtos.getContent();
+
+            if (taskContent.isEmpty()) {
+                logger.info("No tasks due today for user: {}", email);
+                return ResponseEntity.ok(new CommonApiResponse<>(HttpStatus.OK.value(), "No tasks due today.", Collections.emptyList()));
+            }
+
+            CommonApiResponse<List<TodoResponseDTO>> commonApiResponse = new CommonApiResponse<>(
+                    HttpStatus.OK.value(),
+                    "Todos due today retrieved successfully.",
+                    taskContent
+            );
+
+            logger.info("Successfully retrieved tasks due today for user: {}", email);
+            return ResponseEntity.ok(commonApiResponse);
+        } catch (ApplicationException.JwtException e) {
+            logger.error("JWT error while fetching tasks due today: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(new CommonApiResponse<>(HttpStatus.UNAUTHORIZED.value(), "Invalid token.", null));
+        } catch (Exception e) {
+            logger.error("Error fetching tasks due today: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new CommonApiResponse<>(HttpStatus.INTERNAL_SERVER_ERROR.value(), "Failed to retrieve Todos.", null));
+        }
+    }
+
+
 }

@@ -15,6 +15,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -143,6 +144,21 @@ public class TodoService {
 
         return todos.map(this::convertToDTO);
     }
+
+    // Get tasks due today for a specific user
+    public Page<TodoResponseDTO> getTasksDueToday(String email, Pageable pageable) {
+        logger.debug("Fetching tasks due today for user: {}", email);
+        LocalDate today = LocalDate.now();
+        Page<Todo> todos = todoRepository.findByUserEmailAndDueDate(email, today, pageable);
+
+        if (todos.isEmpty()) {
+            logger.info("No tasks due today for user: {}", email);
+            return Page.empty();
+        }
+
+        return todos.map(this::convertToDTO);
+    }
+
 
     // Get user details
     private User getUser(String email) {
