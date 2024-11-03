@@ -9,7 +9,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
-import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -17,7 +16,7 @@ public interface TodoRepository extends JpaRepository<Todo,Long> {
     boolean existsByTitleAndUser(String title, User user);
     Page<Todo> findAllByUserEmail(String email, Pageable pageable);
     Optional<Todo> findByIdAndUser(Long id, User user);
-    List<Todo> findByUserAndCompleted(User user, boolean completed);
+    Page<Todo> findByUserAndCompleted(User user, boolean completed, Pageable pageable);
     Page<Todo> findByUserAndPriority(User user, Priority priority, Pageable pageable);
     Page<Todo> findByUserEmailAndTitleContainingIgnoreCase(String email, String title, Pageable pageable);
     Page<Todo> findByUserEmailAndDueDate(String email, LocalDate dueDate, Pageable pageable);

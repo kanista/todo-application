@@ -16,8 +16,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
-import java.util.List;
-import java.util.stream.Collectors;
+
+
 
 @Service
 public class TodoService {
@@ -61,8 +61,14 @@ public class TodoService {
     // Get all tasks for the authenticated user
     public Page<TodoResponseDTO> getAllTasks(String email, Pageable pageable) {
         logger.debug("Fetching all tasks for user: {}", email);
-        return todoRepository.findAllByUserEmail(email, pageable)
-                .map(this::convertToDTO);
+        Page<Todo> todos = todoRepository.findAllByUserEmail(email, pageable);
+
+        if (todos.isEmpty()) {
+            logger.info("No tasks found for user: {}", email);
+            return Page.empty();
+        }
+
+        return todos.map(this::convertToDTO);
     }
 
 
@@ -116,12 +122,18 @@ public class TodoService {
         logger.info("Task deleted successfully with id: {}", id);
     }
 
-    // Get tasks by completed status
-    public List<TodoResponseDTO> getTasksByCompletion(String email, boolean completed) {
+    // Get tasks by completion status
+    public Page<TodoResponseDTO> getTasksByCompletion(String email, boolean completed, Pageable pageable) {
         logger.debug("Fetching tasks for user: {} with completion status: {}", email, completed);
         User user = getUser(email);
-        List<Todo> todos = todoRepository.findByUserAndCompleted(user, completed);
-        return todos.stream().map(this::convertToDTO).collect(Collectors.toList());
+        Page<Todo> todos = todoRepository.findByUserAndCompleted(user, completed, pageable);
+
+        if (todos.isEmpty()) {
+            logger.info("No tasks found for user: {} with completion status: {}", email, completed);
+            return Page.empty();
+        }
+
+        return todos.map(this::convertToDTO);
     }
 
     // Get tasks by priority
@@ -129,6 +141,12 @@ public class TodoService {
         logger.debug("Fetching tasks for user: {} with priority: {}", email, priority);
         User user = getUser(email);
         Page<Todo> todos = todoRepository.findByUserAndPriority(user, priority, pageable);
+
+        if (todos.isEmpty()) {
+            logger.info("No tasks found for user: {} with priority: {}", email, priority);
+            return Page.empty();
+        }
+
         return todos.map(this::convertToDTO);
     }
 

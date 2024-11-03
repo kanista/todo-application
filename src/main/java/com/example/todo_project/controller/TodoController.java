@@ -93,7 +93,13 @@ public class TodoController {
             Page<TodoResponseDTO> tasks = todoService.getAllTasks(email, pageable);
             logger.info("Tasks retrieved successfully for user: {}", email);
 
-            return ResponseEntity.ok(new CommonApiResponse<>(HttpStatus.OK.value(), "Tasks retrieved successfully.", tasks.getContent()));
+            List<TodoResponseDTO> taskContent = tasks.getContent();
+
+            if (taskContent.isEmpty()) {
+                logger.info("No tasks found for user: {}", email);
+                return ResponseEntity.ok(new CommonApiResponse<>(HttpStatus.OK.value(), "No tasks found for user", Collections.emptyList()));
+            }
+            return ResponseEntity.ok(new CommonApiResponse<>(HttpStatus.OK.value(), "Tasks retrieved successfully.", taskContent));
         } catch (ApplicationException.JwtException e) {
             logger.error("JWT error: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
@@ -192,15 +198,28 @@ public class TodoController {
     // Get tasks by completion status
     @GetMapping("/completed")
     public ResponseEntity<CommonApiResponse<List<TodoResponseDTO>>> getTasksByCompletion(
-            @RequestParam boolean completed, HttpServletRequest request) {
+            @RequestParam boolean completed,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "3") int size,
+            HttpServletRequest request) {
 
-        logger.debug("Received request to get tasks by completion status: {}", completed);
+        logger.debug("Received request to get tasks by completion status: {}, page: {}, size: {}", completed, page, size);
 
         try {
             String email = validateTokenAndGetEmail(request);
-            List<TodoResponseDTO> taskResponseDtos = todoService.getTasksByCompletion(email, completed);
+            Pageable pageable = PageRequest.of(page, size);
+            Page<TodoResponseDTO> taskResponseDtos = todoService.getTasksByCompletion(email, completed, pageable);
+
+            List<TodoResponseDTO> taskContent = taskResponseDtos.getContent();
+
+            if (taskContent.isEmpty()) {
+                logger.info("No tasks found for user: {} with completion status: {}", email, completed);
+                return ResponseEntity.ok(new CommonApiResponse<>(HttpStatus.OK.value(), "No tasks found for user", Collections.emptyList()));
+            }
+
+
             logger.info("Tasks retrieved by completion status for user: {}", email);
-            return ResponseEntity.ok(new CommonApiResponse<>(HttpStatus.OK.value(), "Todos retrieved successfully.", taskResponseDtos));
+            return ResponseEntity.ok(new CommonApiResponse<>(HttpStatus.OK.value(), "Todos retrieved successfully.", taskContent));
         } catch (ApplicationException.JwtException e) {
             logger.error("JWT error: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
@@ -228,6 +247,11 @@ public class TodoController {
             Page<TodoResponseDTO> taskResponseDtos = todoService.getTasksByPriority(email, priority, pageable);
 
             List<TodoResponseDTO> taskContent = taskResponseDtos.getContent();
+
+            if (taskContent.isEmpty()) {
+                logger.info("No tasks found for user: {} with priority: {}", email, priority);
+                return ResponseEntity.ok(new CommonApiResponse<>(HttpStatus.OK.value(), "No tasks found for user", Collections.emptyList()));
+            }
 
             CommonApiResponse<List<TodoResponseDTO>> commonApiResponse = new CommonApiResponse<>(
                     HttpStatus.OK.value(),
